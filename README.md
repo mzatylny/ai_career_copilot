@@ -1,8 +1,8 @@
-# AI Career Copilot API — WOW Version
+# AI Career Copilot API
 
 A polished FastAPI backend for an AI-engineering portfolio project. It analyzes a CV against a job description, creates a learning roadmap, indexes uploaded PDFs into a vector database, answers questions with source chunks, and simulates technical interviews.
 
-## Why this project is strong
+## Features
 
 This is not a basic chatbot. It demonstrates:
 
