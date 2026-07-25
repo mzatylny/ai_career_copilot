@@ -1,8 +1,11 @@
-# AI Career Copilot
+# AI Career Copilot API
 
 AI Career Copilot is a production-minded FastAPI service that turns a CV and a target job description into an evidence-based skills analysis, a practical learning roadmap, and realistic interview practice. It also provides session-isolated RAG over uploaded PDFs with server-verified source citations.
 
 ## Why this project is different
+
+## Features
+
 
 - **Grounded document answers** — source metadata is reconstructed from trusted retrieval results, so the model cannot invent citation IDs or filenames.
 - **Privacy boundaries** — every Chroma query and deletion is filtered by a validated `session_id`.
