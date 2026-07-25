@@ -1,42 +1,43 @@
-# AI Career Copilot API — WOW Version
+# AI Career Copilot
 
-A polished FastAPI backend for an AI-engineering portfolio project. It analyzes a CV against a job description, creates a learning roadmap, indexes uploaded PDFs into a vector database, answers questions with source chunks, and simulates technical interviews.
+AI Career Copilot is a production-minded FastAPI service that turns a CV and a target job description into an evidence-based skills analysis, a practical learning roadmap, and realistic interview practice. It also provides session-isolated RAG over uploaded PDFs with server-verified source citations.
 
-## Why this project is strong
+## Why this project is different
 
-This is not a basic chatbot. It demonstrates:
+- **Grounded document answers** — source metadata is reconstructed from trusted retrieval results, so the model cannot invent citation IDs or filenames.
+- **Privacy boundaries** — every Chroma query and deletion is filtered by a validated `session_id`.
+- **Safe local demo** — deterministic mock LLM and embedding modes run without an API key.
+- **Bounded processing** — uploads, PDF page count, request text, retrieval size, and embedding batches have explicit limits.
+- **Portfolio-ready engineering** — typed API models, tests, CI, non-root Docker runtime, health checks, request IDs, and security headers.
 
-- API design with FastAPI
-- Pydantic validation and typed response models
-- OpenAI structured JSON outputs
-- RAG over uploaded PDFs
-- ChromaDB vector search with session-level isolation
-- Resume/job matching
-- Interview feedback
-- Docker-ready deployment
-- Mock mode for demos without an API key
+## Capabilities
 
-## Project structure
+- CV-to-job skills-gap analysis with evidence, risk flags, and quick wins
+- 14–180 day learning roadmaps with milestones and portfolio projects
+- PDF ingestion, chunking, embeddings, and session-scoped ChromaDB retrieval
+- Grounded document chat with pages, snippets, chunk IDs, and relevance scores
+- Session document inventory and privacy-focused deletion
+- Technical interview question generation and answer evaluation
+- Truth-preserving CV bullet rewriting
+
+## Architecture
 
 ```text
-ai_career_copilot_wow/
-├── app/
-│   ├── main.py          # FastAPI endpoints
-│   ├── models.py        # Request/response schemas
-│   ├── ai_services.py   # LLM prompts + structured outputs
-│   ├── rag_engine.py    # PDF extraction, embeddings, ChromaDB
-│   ├── config.py        # Environment settings
-│   └── utils.py         # Helpers
-├── tests/
-│   └── test_api.py
-├── requirements.txt
-├── Dockerfile
-├── docker-compose.yml
-├── .env.example
-└── README.md
+Client
+  │
+  ▼
+FastAPI validation and request limits
+  ├── Career workflows ──► OpenAI structured output or deterministic mock
+  └── Document workflows ─► PDF parser ─► chunker ─► embeddings ─► ChromaDB
+                                                        │
+                                                        └── session filter + trusted citations
 ```
 
-## Setup
+More detail is available in [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
+
+## Quick start
+
+Python 3.11 or newer is required.
 
 ```bash
 python -m venv .venv
@@ -45,141 +46,92 @@ pip install -r requirements.txt
 cp .env.example .env
 ```
 
-Edit `.env` and add your key:
+For a free local demo, set:
 
-```bash
-OPENAI_API_KEY=sk-your-key-here
+```env
+AI_COPILOT_MOCK_LLM=true
+AI_COPILOT_MOCK_EMBEDDINGS=true
 ```
 
-Run:
+Start the API:
 
 ```bash
 ./run_dev.sh
 ```
 
-Open:
+Open [http://localhost:8000/docs](http://localhost:8000/docs).
 
-```text
-http://localhost:8000/docs
-```
+## API overview
 
-## Free mock mode
+| Method | Endpoint | Purpose |
+| --- | --- | --- |
+| `GET` | `/api/health` | Runtime mode and version |
+| `POST` | `/api/analyze-gap` | Compare a CV with a job description |
+| `POST` | `/api/generate-roadmap` | Build a practical learning roadmap |
+| `POST` | `/api/upload-document` | Index a PDF for one session |
+| `POST` | `/api/chat` | Ask a grounded question over session documents |
+| `GET` | `/api/sessions/{session_id}/documents` | List indexed document summaries |
+| `DELETE` | `/api/sessions/{session_id}/documents` | Delete all chunks for a session |
+| `POST` | `/api/interview/question` | Generate an interview question |
+| `POST` | `/api/interview/evaluate` | Evaluate an interview answer |
+| `POST` | `/api/rewrite-resume` | Rewrite CV bullets without inventing facts |
 
-For screenshots, tests, or demos without spending money:
-
-```bash
-AI_COPILOT_MOCK_LLM=true
-AI_COPILOT_MOCK_EMBEDDINGS=true
-uvicorn app.main:app --reload
-```
-
-## Main endpoints
-
-### Health check
-
-```bash
-curl http://localhost:8000/api/health
-```
-
-### Analyze CV/job gap
+### Example: analyze a gap
 
 ```bash
 curl -X POST http://localhost:8000/api/analyze-gap \
   -H "Content-Type: application/json" \
   -d '{
-    "resume_text": "Python developer with FastAPI and data projects...",
-    "job_description_text": "We need an AI Engineer with Python, RAG, APIs, Docker and SQL...",
+    "resume_text": "Python developer with FastAPI, SQL, Docker and data projects...",
+    "job_description_text": "AI Engineer role requiring Python, RAG, APIs, Docker and SQL...",
     "target_seniority": "junior"
   }'
 ```
 
-### Generate roadmap
-
-```bash
-curl -X POST http://localhost:8000/api/generate-roadmap \
-  -H "Content-Type: application/json" \
-  -d '{
-    "missing_skills": ["RAG", "Docker", "Vector databases"],
-    "timeframe_days": 90,
-    "hours_per_week": 10,
-    "target_role": "AI Engineer"
-  }'
-```
-
-### Upload a PDF
+### Example: upload and query a PDF
 
 ```bash
 curl -X POST http://localhost:8000/api/upload-document \
-  -F "session_id=demo123" \
+  -F "session_id=demo_123" \
   -F "file=@resume.pdf"
-```
 
-### Chat with uploaded documents
-
-```bash
 curl -X POST http://localhost:8000/api/chat \
   -H "Content-Type: application/json" \
-  -d '{
-    "session_id": "demo123",
-    "user_query": "What are the strongest AI skills in this CV?"
-  }'
+  -d '{"session_id":"demo_123","user_query":"Which projects best support an AI Engineer application?"}'
 ```
 
-### Generate interview question
+## Configuration
+
+| Variable | Default | Meaning |
+| --- | --- | --- |
+| `OPENAI_API_KEY` | empty | Enables live LLM and embeddings |
+| `LLM_MODEL` | `gpt-4o-mini` | Structured-output model |
+| `EMBEDDING_MODEL` | `text-embedding-3-small` | Embedding model |
+| `CHROMA_PATH` | `./chroma_db` | Persistent vector-store path |
+| `MAX_UPLOAD_MB` | `12` | Maximum PDF size |
+| `MAX_PDF_PAGES` | `250` | Maximum processed pages per PDF |
+| `MAX_CONTEXT_CHUNKS` | `5` | Retrieval result limit |
+| `EMBEDDING_BATCH_SIZE` | `64` | Maximum texts per embedding call |
+| `CORS_ORIGINS` | localhost origins | Comma-separated allowed origins |
+
+## Tests and quality checks
 
 ```bash
-curl -X POST http://localhost:8000/api/interview/question \
-  -H "Content-Type: application/json" \
-  -d '{
-    "target_role": "AI Engineer",
-    "seniority": "junior",
-    "focus_skills": ["Python", "FastAPI", "RAG"]
-  }'
+ruff check .
+pytest
 ```
 
-### Evaluate interview answer
-
-```bash
-curl -X POST http://localhost:8000/api/interview/evaluate \
-  -H "Content-Type: application/json" \
-  -d '{
-    "question": "How would you build a RAG API?",
-    "user_answer": "I would upload PDFs, embed chunks, retrieve relevant text and answer with sources.",
-    "target_role": "AI Engineer"
-  }'
-```
-
-## Run tests
-
-```bash
-AI_COPILOT_MOCK_LLM=true AI_COPILOT_MOCK_EMBEDDINGS=true pytest
-```
+The test suite covers API validation, safe uploads, error redaction, request headers, session isolation, citation grounding, document inventory, chunking, and relevance scoring. GitHub Actions runs lint and tests on Python 3.11 and 3.12.
 
 ## Docker
 
 ```bash
 cp .env.example .env
-# edit .env
-
 docker compose up --build
 ```
 
-## Demo script for GitHub / university presentation
+The container runs as an unprivileged user and exposes a health check at `/api/health`.
 
-1. Open `/docs`.
-2. Show `/api/health` returning `ok`.
-3. Paste a CV and AI Engineer job description into `/api/analyze-gap`.
-4. Generate a roadmap from the missing skills.
-5. Upload a PDF under `session_id=demo123`.
-6. Ask a question with `/api/chat` and show sources.
-7. Generate and evaluate an interview answer.
-8. Explain that mock mode allows safe demos and real OpenAI mode enables production behavior.
+## Security scope
 
-## What to add later
-
-- Frontend dashboard in Next.js
-- User authentication
-- PostgreSQL for user history
-- Stripe/pricing if you want SaaS style
-- Deployment to Render/Fly.io/Railway
-- Analytics dashboard for job match progress
+This repository demonstrates secure defaults but does not provide user authentication or production rate limiting. Before a public multi-user deployment, place it behind an authenticated gateway, assign server-generated user/session ownership, enable rate limits, and use a managed database and secret store.
