@@ -29,8 +29,9 @@ client = (
 )
 
 
-def _hash_embedding(text: str, dimensions: int = 384) -> list[float]:
+def _hash_embedding(text: str, dimensions: int | None = None) -> list[float]:
     """Deterministic lightweight embedding for tests/demos when no API key exists."""
+    dimensions = dimensions or settings.embedding_dimensions
     vector = [0.0] * dimensions
     tokens = re.findall(r"[a-zA-Z0-9_]+", text.lower())
     for token in tokens:
@@ -44,9 +45,13 @@ def _hash_embedding(text: str, dimensions: int = 384) -> list[float]:
 
 def embed_texts(texts: list[str]) -> list[list[float]]:
     if settings.should_use_mock_embeddings or client is None:
-        return [_hash_embedding(text) for text in texts]
+        return [_hash_embedding(text, settings.embedding_dimensions) for text in texts]
 
-    response = client.embeddings.create(model=settings.embedding_model, input=texts)
+    response = client.embeddings.create(
+        model=settings.embedding_model,
+        input=texts,
+        dimensions=settings.embedding_dimensions,
+    )
     return [item.embedding for item in response.data]
 
 
@@ -142,6 +147,15 @@ def process_and_store_document(file_path: str | Path, session_id: str, original_
         return 0
 
     col = _collection()
+    document_filter = {
+        "$and": [
+            {"session_id": {"$eq": session_id}},
+            {"source": {"$eq": source}},
+        ]
+    }
+    existing = col.get(where=document_filter, include=[])
+    existing_ids = set(existing.get("ids") or [])
+
     batch_size = max(1, min(settings.embedding_batch_size, 256))
     for start in range(0, len(documents), batch_size):
         end = start + batch_size
@@ -152,6 +166,10 @@ def process_and_store_document(file_path: str | Path, session_id: str, original_
             metadatas=metadatas[start:end],
             embeddings=embed_texts(batch_documents),
         )
+
+    stale_ids = sorted(existing_ids.difference(ids))
+    if stale_ids:
+        col.delete(ids=stale_ids)
     return len(documents)
 
 

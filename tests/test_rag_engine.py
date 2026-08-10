@@ -25,6 +25,58 @@ def test_stable_chunk_id_is_deterministic_and_session_scoped():
     assert first.startswith("session-a-")
 
 
+def test_mock_embeddings_use_the_configured_dimension(monkeypatch):
+    monkeypatch.setattr(rag.settings, "mock_embeddings", True)
+    monkeypatch.setattr(rag.settings, "embedding_dimensions", 64)
+
+    embeddings = rag.embed_texts(["Python and FastAPI"])
+
+    assert len(embeddings) == 1
+    assert len(embeddings[0]) == 64
+
+
+def test_reupload_replaces_stale_chunks_for_the_same_document(monkeypatch):
+    events = []
+
+    class Collection:
+        def get(self, **kwargs):
+            events.append(("get", kwargs))
+            return {"ids": ["old-chunk"]}
+
+        def upsert(self, **kwargs):
+            events.append(("upsert", kwargs))
+
+        def delete(self, **kwargs):
+            events.append(("delete", kwargs))
+
+    monkeypatch.setattr(
+        rag,
+        "extract_pdf_pages",
+        lambda _path: [{"page": 1, "text": "Updated Python and FastAPI experience."}],
+    )
+    monkeypatch.setattr(rag, "_collection", lambda: Collection())
+    monkeypatch.setattr(rag, "embed_texts", lambda texts: [[0.0, 1.0] for _ in texts])
+
+    chunks = rag.process_and_store_document(
+        "unused.pdf", session_id="demo_123", original_filename="resume.pdf"
+    )
+
+    assert chunks == 1
+    assert events[0] == (
+        "get",
+        {
+            "where": {
+                "$and": [
+                    {"session_id": {"$eq": "demo_123"}},
+                    {"source": {"$eq": "resume.pdf"}},
+                ]
+            },
+            "include": [],
+        },
+    )
+    assert events[-1] == ("delete", {"ids": ["old-chunk"]})
+
+
 def test_list_session_documents_aggregates_without_returning_text(monkeypatch):
     class Collection:
         def get(self, **kwargs):

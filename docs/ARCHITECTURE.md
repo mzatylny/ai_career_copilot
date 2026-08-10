@@ -15,11 +15,13 @@ The career workflows request structured JSON and validate every response against
 1. A PDF is validated by filename, signature, byte limit, and page limit.
 2. Text is extracted per page and split into overlapping sentence-aware chunks.
 3. Stable SHA-256 chunk IDs include session, source, page, and content.
-4. Embeddings are generated and upserted in bounded batches.
-5. Queries always include an exact `session_id` metadata filter.
-6. Retrieved cosine distances are converted to bounded relevance values.
-7. Document text is marked as untrusted context in the AI prompt.
-8. Model-provided citations are discarded unless their chunk IDs exist in the retrieval set; filenames, pages, snippets, and scores are rebuilt from trusted metadata.
+4. Mock and live embeddings use the configured vector dimension, preventing collection dimension drift.
+5. Embeddings are generated and upserted in bounded batches.
+6. Re-uploading a filename replaces stale chunks for that session after the new chunks are stored.
+7. Queries always include an exact `session_id` metadata filter.
+8. Retrieved cosine distances are converted to bounded relevance values.
+9. Document text is marked as untrusted context in the AI prompt.
+10. Model-provided citations are discarded unless their chunk IDs exist in the retrieval set; filenames, pages, snippets, and scores are rebuilt from trusted metadata.
 
 ## Data lifecycle
 

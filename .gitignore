@@ -5,4 +5,7 @@ __pycache__/
 *.pyc
 chroma_db/
 .venv/
+build/
+*.egg-info/
+test_chroma_db/
 .DS_Store

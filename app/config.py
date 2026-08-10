@@ -16,15 +16,19 @@ class Settings(BaseSettings):
     openai_api_key: str | None = Field(default=None, alias="OPENAI_API_KEY")
     llm_model: str = Field(default="gpt-4o-mini", alias="LLM_MODEL")
     embedding_model: str = Field(default="text-embedding-3-small", alias="EMBEDDING_MODEL")
-    embedding_dimensions: int = Field(default=1536, alias="EMBEDDING_DIMENSIONS")
+    embedding_dimensions: int = Field(
+        default=1536, alias="EMBEDDING_DIMENSIONS", ge=64, le=3072
+    )
 
     chroma_path: str = Field(default="./chroma_db", alias="CHROMA_PATH")
     collection_name: str = Field(default="career_documents", alias="CHROMA_COLLECTION")
 
-    max_upload_mb: int = Field(default=12, alias="MAX_UPLOAD_MB")
-    max_context_chunks: int = Field(default=5, alias="MAX_CONTEXT_CHUNKS")
-    max_pdf_pages: int = Field(default=250, alias="MAX_PDF_PAGES")
-    embedding_batch_size: int = Field(default=64, alias="EMBEDDING_BATCH_SIZE")
+    max_upload_mb: int = Field(default=12, alias="MAX_UPLOAD_MB", ge=1, le=100)
+    max_context_chunks: int = Field(default=5, alias="MAX_CONTEXT_CHUNKS", ge=1, le=20)
+    max_pdf_pages: int = Field(default=250, alias="MAX_PDF_PAGES", ge=1, le=1000)
+    embedding_batch_size: int = Field(
+        default=64, alias="EMBEDDING_BATCH_SIZE", ge=1, le=256
+    )
 
     # Useful for tests, demos and screenshots when no paid API key is available.
     mock_llm: bool = Field(default=False, alias="AI_COPILOT_MOCK_LLM")

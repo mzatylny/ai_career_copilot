@@ -1,11 +1,10 @@
 # AI Career Copilot API
 
+[![CI](https://github.com/mzatylny/ai_career_copilot/actions/workflows/ci.yml/badge.svg)](https://github.com/mzatylny/ai_career_copilot/actions/workflows/ci.yml)
+
 AI Career Copilot is a production-minded FastAPI service that turns a CV and a target job description into an evidence-based skills analysis, a practical learning roadmap, and realistic interview practice. It also provides session-isolated RAG over uploaded PDFs with server-verified source citations.
 
 ## Why this project is different
-
-## Features
-
 
 - **Grounded document answers** — source metadata is reconstructed from trusted retrieval results, so the model cannot invent citation IDs or filenames.
 - **Privacy boundaries** — every Chroma query and deletion is filtered by a validated `session_id`.
@@ -49,12 +48,15 @@ pip install -r requirements.txt
 cp .env.example .env
 ```
 
-For a free local demo, set:
+The example environment already defaults to a free local demo:
 
 ```env
 AI_COPILOT_MOCK_LLM=true
 AI_COPILOT_MOCK_EMBEDDINGS=true
 ```
+
+To enable live OpenAI calls, add a real `OPENAI_API_KEY` and set both mock flags to
+`false`. Use a separate Chroma collection when changing embedding models or dimensions.
 
 Start the API:
 
@@ -110,6 +112,7 @@ curl -X POST http://localhost:8000/api/chat \
 | `OPENAI_API_KEY` | empty | Enables live LLM and embeddings |
 | `LLM_MODEL` | `gpt-4o-mini` | Structured-output model |
 | `EMBEDDING_MODEL` | `text-embedding-3-small` | Embedding model |
+| `EMBEDDING_DIMENSIONS` | `1536` | Shared vector size for mock and live embeddings |
 | `CHROMA_PATH` | `./chroma_db` | Persistent vector-store path |
 | `MAX_UPLOAD_MB` | `12` | Maximum PDF size |
 | `MAX_PDF_PAGES` | `250` | Maximum processed pages per PDF |
@@ -124,7 +127,7 @@ ruff check .
 pytest
 ```
 
-The test suite covers API validation, safe uploads, error redaction, request headers, session isolation, citation grounding, document inventory, chunking, and relevance scoring. GitHub Actions runs lint and tests on Python 3.11 and 3.12.
+The test suite covers API validation, safe uploads, error redaction, request headers, session isolation, citation grounding, document replacement, document inventory, chunking, and relevance scoring. GitHub Actions runs lint and tests on Python 3.11 and 3.12.
 
 ## Docker
 
