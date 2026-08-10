@@ -24,7 +24,7 @@ jobs:
     env:
       AI_COPILOT_MOCK_LLM: "true"
       AI_COPILOT_MOCK_EMBEDDINGS: "true"
-      CHROMA_PATH: ${{ runner.temp }}/test-chroma-${{ matrix.python-version }}
+      CHROMA_PATH: ./test-chroma-${{ matrix.python-version }}
 
     steps:
       - name: Check out repository
