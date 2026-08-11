@@ -2,10 +2,13 @@
 __pycache__/
 .pytest_cache/
 .ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
 *.pyc
-chroma_db/
-.venv/
-build/
 *.egg-info/
-test_chroma_db/
+chroma_db/
+data/
+test_data/
+.venv/
 .DS_Store

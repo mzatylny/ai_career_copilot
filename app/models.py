@@ -31,6 +31,11 @@ class APIModel(BaseModel):
     model_config = ConfigDict(str_strip_whitespace=True, extra="forbid")
 
 
+class GeneratedResponse(APIModel):
+    generation_mode: Literal["openai", "mock", "fallback", "not_invoked"] = "openai"
+    degraded: bool = False
+
+
 class Seniority(StrEnum):
     intern = "intern"
     junior = "junior"
@@ -51,7 +56,9 @@ class SkillCategory(StrEnum):
 
 
 class JobDescriptionInput(APIModel):
-    resume_text: str = Field(..., min_length=40, max_length=20_000, description="Raw resume/CV text")
+    resume_text: str = Field(
+        ..., min_length=40, max_length=20_000, description="Raw resume/CV text"
+    )
     job_description_text: str = Field(
         ..., min_length=40, max_length=20_000, description="Raw job description text"
     )
@@ -67,7 +74,7 @@ class SkillEvidence(APIModel):
     action: str = Field(..., min_length=1, max_length=1_000)
 
 
-class GapAnalysisResponse(APIModel):
+class GapAnalysisResponse(GeneratedResponse):
     match_score: int = Field(..., ge=0, le=100)
     summary: str = Field(..., min_length=1, max_length=4_000)
     missing_skills: list[SkillEvidence]
@@ -106,7 +113,7 @@ class ProjectRecommendation(APIModel):
     github_readme_pitch: str
 
 
-class RoadmapResponse(APIModel):
+class RoadmapResponse(GeneratedResponse):
     headline: str
     total_days: int
     milestones: list[RoadmapMilestone]
@@ -128,10 +135,11 @@ class SourceChunk(APIModel):
     relevance_score: float | None = Field(default=None, ge=0, le=1)
 
 
-class ChatResponse(APIModel):
+class ChatResponse(GeneratedResponse):
     answer: str = Field(..., min_length=1, max_length=12_000)
     sources: list[SourceChunk] = Field(default_factory=list)
     confidence: Literal["low", "medium", "high"]
+    grounding_status: Literal["grounded", "unsupported", "no_context"] = "unsupported"
     follow_up_questions: list[str] = Field(default_factory=list)
 
 
@@ -148,7 +156,7 @@ class InterviewQuestionRequest(APIModel):
         return _clean_string_list(value, item_limit=120, list_name="focus skill")
 
 
-class InterviewQuestionResponse(APIModel):
+class InterviewQuestionResponse(GeneratedResponse):
     question: str
     difficulty: str
     expected_signals: list[str]
@@ -161,7 +169,7 @@ class InterviewAnswer(APIModel):
     target_role: str = Field(default="AI Engineer", min_length=2, max_length=120)
 
 
-class InterviewFeedbackResponse(APIModel):
+class InterviewFeedbackResponse(GeneratedResponse):
     score: int = Field(..., ge=0, le=100)
     verdict: str
     strengths: list[str]
@@ -181,7 +189,7 @@ class ResumeRewriteRequest(APIModel):
         return _clean_string_list(value, item_limit=2_000, list_name="resume bullet")
 
 
-class ResumeRewriteResponse(APIModel):
+class ResumeRewriteResponse(GeneratedResponse):
     rewritten_bullets: list[str]
     keywords_added: list[str]
     explanation: str
@@ -194,6 +202,11 @@ class HealthResponse(APIModel):
     environment: str
     ai_mode: Literal["mock", "openai"]
     vector_store: Literal["chroma"]
+
+
+class ReadinessResponse(APIModel):
+    status: Literal["ready"]
+    checks: dict[str, bool]
 
 
 class UploadResponse(APIModel):
@@ -218,6 +231,25 @@ class SessionDocumentsResponse(APIModel):
 class DeleteDocumentsResponse(APIModel):
     session_id: SessionId
     deleted_chunks: int = Field(..., ge=0)
+
+
+class SessionCreateResponse(APIModel):
+    session_id: SessionId
+    message: str = "Session created"
+
+
+class UploadJobResponse(APIModel):
+    job_id: str = Field(..., min_length=8, max_length=80)
+    session_id: SessionId
+    filename: str = Field(..., min_length=1, max_length=120)
+    status: Literal["queued", "processing", "completed", "failed"]
+
+
+class JobStatusResponse(UploadJobResponse):
+    chunks_indexed: int = Field(default=0, ge=0)
+    error: str | None = Field(default=None, max_length=500)
+    created_at: str
+    updated_at: str
 
 
 class ErrorResponse(APIModel):

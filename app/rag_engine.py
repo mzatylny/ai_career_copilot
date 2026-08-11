@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 import hashlib
-import math
 import re
-from collections import defaultdict
+import threading
+from collections import OrderedDict, defaultdict
 from pathlib import Path
 from typing import Any
 
@@ -19,47 +19,75 @@ except ImportError:  # Allows mock embeddings before dependencies are installed.
 from pypdf import PdfReader
 
 from app.config import get_settings
+from app.embeddings import hash_embedding
 from app.utils import short_snippet
 
 settings = get_settings()
 client = (
-    OpenAI(api_key=settings.openai_api_key)
+    OpenAI(
+        api_key=settings.openai_api_key,
+        timeout=settings.openai_timeout_seconds,
+        max_retries=settings.openai_max_retries,
+    )
     if settings.openai_api_key and OpenAI is not None
     else None
 )
+_embedding_cache: OrderedDict[str, list[float]] = OrderedDict()
+_embedding_cache_lock = threading.Lock()
 
 
 def _hash_embedding(text: str, dimensions: int | None = None) -> list[float]:
-    """Deterministic lightweight embedding for tests/demos when no API key exists."""
-    dimensions = dimensions or settings.embedding_dimensions
-    vector = [0.0] * dimensions
-    tokens = re.findall(r"[a-zA-Z0-9_]+", text.lower())
-    for token in tokens:
-        digest = hashlib.sha256(token.encode("utf-8")).digest()
-        idx = int.from_bytes(digest[:4], "big") % dimensions
-        sign = 1.0 if digest[4] % 2 == 0 else -1.0
-        vector[idx] += sign
-    norm = math.sqrt(sum(v * v for v in vector)) or 1.0
-    return [v / norm for v in vector]
+    """Backwards-compatible wrapper around the dependency-free demo embedding."""
+    return hash_embedding(text, dimensions or settings.embedding_dimensions)
 
 
 def embed_texts(texts: list[str]) -> list[list[float]]:
     if settings.should_use_mock_embeddings or client is None:
         return [_hash_embedding(text, settings.embedding_dimensions) for text in texts]
 
-    response = client.embeddings.create(
-        model=settings.embedding_model,
-        input=texts,
-        dimensions=settings.embedding_dimensions,
-    )
-    return [item.embedding for item in response.data]
+    cache_keys = [
+        hashlib.sha256(
+            f"{settings.embedding_model}:{settings.embedding_dimensions}:{text}".encode()
+        ).hexdigest()
+        for text in texts
+    ]
+    resolved: list[list[float] | None] = [None] * len(texts)
+    missing_indices: list[int] = []
+    with _embedding_cache_lock:
+        for index, key in enumerate(cache_keys):
+            cached = _embedding_cache.get(key)
+            if cached is None:
+                missing_indices.append(index)
+            else:
+                _embedding_cache.move_to_end(key)
+                resolved[index] = cached
+
+    if missing_indices:
+        missing_texts = [texts[index] for index in missing_indices]
+        response = client.embeddings.create(
+            model=settings.embedding_model,
+            input=missing_texts,
+            dimensions=settings.embedding_dimensions,
+        )
+        with _embedding_cache_lock:
+            for index, item in zip(missing_indices, response.data, strict=True):
+                resolved[index] = item.embedding
+                if settings.embedding_cache_size:
+                    _embedding_cache[cache_keys[index]] = item.embedding
+                    _embedding_cache.move_to_end(cache_keys[index])
+            while len(_embedding_cache) > settings.embedding_cache_size:
+                _embedding_cache.popitem(last=False)
+
+    return [embedding for embedding in resolved if embedding is not None]
 
 
 def _collection():
     if chromadb is None:
         raise RuntimeError("chromadb is not installed. Run: pip install -r requirements.txt")
     db = chromadb.PersistentClient(path=settings.chroma_path)
-    return db.get_or_create_collection(name=settings.collection_name, metadata={"hnsw:space": "cosine"})
+    return db.get_or_create_collection(
+        name=settings.collection_name, metadata={"hnsw:space": "cosine"}
+    )
 
 
 def extract_pdf_pages(file_path: str | Path) -> list[dict[str, Any]]:
@@ -75,10 +103,17 @@ def extract_pdf_pages(file_path: str | Path) -> list[dict[str, Any]]:
         raise ValueError(f"PDF exceeds the {settings.max_pdf_pages}-page processing limit")
 
     pages: list[dict[str, Any]] = []
+    extracted_characters = 0
     for page_index, page in enumerate(reader.pages, start=1):
         text = page.extract_text() or ""
         compact = re.sub(r"\n{3,}", "\n\n", text).strip()
         if compact:
+            extracted_characters += len(compact)
+            if extracted_characters > settings.max_document_characters:
+                raise ValueError(
+                    "PDF exceeds the "
+                    f"{settings.max_document_characters:,}-character processing limit"
+                )
             pages.append({"page": page_index, "text": compact})
     return pages
 
@@ -98,7 +133,9 @@ def split_text(text: str, *, chunk_size: int = 1100, overlap: int = 160) -> list
     while start < len(text):
         end = min(start + chunk_size, len(text))
         # Prefer ending at a sentence boundary when possible.
-        boundary = max(text.rfind(". ", start, end), text.rfind("? ", start, end), text.rfind("! ", start, end))
+        boundary = max(
+            text.rfind(". ", start, end), text.rfind("? ", start, end), text.rfind("! ", start, end)
+        )
         if boundary > start + chunk_size * 0.55:
             end = boundary + 1
         chunk = text[start:end].strip()
@@ -111,13 +148,13 @@ def split_text(text: str, *, chunk_size: int = 1100, overlap: int = 160) -> list
 
 
 def _stable_chunk_id(session_id: str, source: str, page: int, text: str) -> str:
-    digest = hashlib.sha256(
-        f"{session_id}|{source}|{page}|{text[:500]}".encode()
-    ).hexdigest()[:20]
+    digest = hashlib.sha256(f"{session_id}|{source}|{page}|{text[:500]}".encode()).hexdigest()[:20]
     return f"{session_id}-{digest}"
 
 
-def process_and_store_document(file_path: str | Path, session_id: str, original_filename: str | None = None) -> int:
+def process_and_store_document(
+    file_path: str | Path, session_id: str, original_filename: str | None = None
+) -> int:
     """Load a PDF, split it and upsert chunks into ChromaDB."""
     source = original_filename or Path(file_path).name
     pages = extract_pdf_pages(file_path)
@@ -130,6 +167,10 @@ def process_and_store_document(file_path: str | Path, session_id: str, original_
 
     for page in pages:
         for idx, chunk in enumerate(split_text(page["text"]), start=1):
+            if len(documents) >= settings.max_document_chunks:
+                raise ValueError(
+                    f"PDF exceeds the {settings.max_document_chunks:,}-chunk processing limit"
+                )
             chunk_id = _stable_chunk_id(session_id, source, page["page"], chunk + str(idx))
             ids.append(chunk_id)
             documents.append(chunk)

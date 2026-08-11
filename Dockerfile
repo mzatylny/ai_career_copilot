@@ -4,13 +4,15 @@ WORKDIR /app
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
-    PIP_NO_CACHE_DIR=1
+    PIP_NO_CACHE_DIR=1 \
+    HOME=/tmp
 
 COPY pyproject.toml README.md requirements.txt ./
 COPY app ./app
-RUN pip install --no-cache-dir . \
+COPY web ./web
+RUN pip install --no-cache-dir '.[observability]' \
     && useradd --create-home --uid 10001 appuser \
-    && mkdir -p /app/chroma_db \
+    && mkdir -p /app/chroma_db /app/data/objects \
     && chown -R appuser:appuser /app
 
 USER appuser

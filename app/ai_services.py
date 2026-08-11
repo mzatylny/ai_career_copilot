@@ -26,7 +26,11 @@ T = TypeVar("T", bound=BaseModel)
 logger = logging.getLogger(__name__)
 settings = get_settings()
 client = (
-    OpenAI(api_key=settings.openai_api_key)
+    OpenAI(
+        api_key=settings.openai_api_key,
+        timeout=settings.openai_timeout_seconds,
+        max_retries=settings.openai_max_retries,
+    )
     if settings.openai_api_key and OpenAI is not None
     else None
 )
@@ -74,9 +78,13 @@ def _mock_gap_analysis(resume: str, job_desc: str) -> GapAnalysisResponse:
                 "skill": skill,
                 "category": category,
                 "importance": 4,
-                "evidence_from_resume": "Found in resume" if skill_l in resume_l else "Not clearly evidenced",
+                "evidence_from_resume": "Found in resume"
+                if skill_l in resume_l
+                else "Not clearly evidenced",
                 "evidence_from_job": f"The job description appears to value {skill}.",
-                "action": f"Add one concrete project bullet proving {skill}." if skill_l not in resume_l else f"Keep {skill} visible in the top third of the CV.",
+                "action": f"Add one concrete project bullet proving {skill}."
+                if skill_l not in resume_l
+                else f"Keep {skill} visible in the top third of the CV.",
             }
             if skill_l in resume_l:
                 strengths.append(item)
@@ -85,10 +93,12 @@ def _mock_gap_analysis(resume: str, job_desc: str) -> GapAnalysisResponse:
     score = max(35, min(92, 70 + len(strengths) * 4 - len(missing) * 5))
     return GapAnalysisResponse(
         match_score=score,
-        summary="Mock analysis: your CV has a plausible AI-engineering base, but needs sharper evidence tied to the job description.",
+        summary="Deterministic analysis: your CV has a plausible AI-engineering base, but needs sharper evidence tied to the job description.",
         missing_skills=missing[:6],
         strengths=strengths[:6],
-        risk_flags=["Some claims may be too generic unless connected to measurable project outcomes."],
+        risk_flags=[
+            "Some claims may be too generic unless connected to measurable project outcomes."
+        ],
         quick_wins=[
             "Add a 2-line AI Career Copilot project with API, RAG, tests and deployment.",
             "Put Python/FastAPI/RAG/Vector DB keywords near the top.",
@@ -98,7 +108,9 @@ def _mock_gap_analysis(resume: str, job_desc: str) -> GapAnalysisResponse:
     )
 
 
-def _mock_roadmap(missing_skills: list[str], days: int, hours_per_week: int, target_role: str) -> RoadmapResponse:
+def _mock_roadmap(
+    missing_skills: list[str], days: int, hours_per_week: int, target_role: str
+) -> RoadmapResponse:
     skills = ", ".join(missing_skills[:6])
     return RoadmapResponse(
         headline=f"{days}-day {target_role} upgrade plan focused on {skills}",
@@ -108,7 +120,11 @@ def _mock_roadmap(missing_skills: list[str], days: int, hours_per_week: int, tar
                 "week_range": "Weeks 1-2",
                 "focus": "Backend and API foundations",
                 "deliverables": ["FastAPI service", "Pydantic schemas", "pytest smoke tests"],
-                "practice_tasks": ["Build 5 endpoints", "Write curl examples", "Handle validation errors"],
+                "practice_tasks": [
+                    "Build 5 endpoints",
+                    "Write curl examples",
+                    "Handle validation errors",
+                ],
                 "success_metric": "API runs locally and tests pass without an OpenAI key in mock mode.",
             },
             {
@@ -130,7 +146,12 @@ def _mock_roadmap(missing_skills: list[str], days: int, hours_per_week: int, tar
             {
                 "title": "AI Career Copilot",
                 "why_it_matters": "It demonstrates AI engineering, product thinking and real user value.",
-                "core_features": ["CV/job gap analysis", "RAG over career PDFs", "interview simulator", "roadmap generation"],
+                "core_features": [
+                    "CV/job gap analysis",
+                    "RAG over career PDFs",
+                    "interview simulator",
+                    "roadmap generation",
+                ],
                 "tech_stack": ["FastAPI", "OpenAI", "ChromaDB", "Pydantic", "Docker"],
                 "stretch_feature": "Add job-posting comparison across 5 roles with a ranking dashboard.",
                 "github_readme_pitch": "An end-to-end AI engineering app that turns resumes and job descriptions into actionable learning plans.",
@@ -138,7 +159,12 @@ def _mock_roadmap(missing_skills: list[str], days: int, hours_per_week: int, tar
             {
                 "title": "Natural Language SQL Analyst",
                 "why_it_matters": "Shows practical data access and safe query generation.",
-                "core_features": ["schema inspection", "SQL generation", "explain query", "chart-ready JSON"],
+                "core_features": [
+                    "schema inspection",
+                    "SQL generation",
+                    "explain query",
+                    "chart-ready JSON",
+                ],
                 "tech_stack": ["FastAPI", "PostgreSQL", "OpenAI", "SQLAlchemy"],
                 "stretch_feature": "Add query risk checks before execution.",
                 "github_readme_pitch": "Ask questions about a database in natural language and receive safe, explainable SQL.",
@@ -153,12 +179,20 @@ def _mock_roadmap(missing_skills: list[str], days: int, hours_per_week: int, tar
     )
 
 
-def _mock_interview_question(target_role: str, seniority: str, focus_skills: list[str]) -> InterviewQuestionResponse:
+def _mock_interview_question(
+    target_role: str, seniority: str, focus_skills: list[str]
+) -> InterviewQuestionResponse:
     skills = ", ".join(focus_skills)
     return InterviewQuestionResponse(
         question=f"You are building a {target_role} portfolio app using {skills}. How would you design the API and RAG pipeline so answers are grounded in uploaded documents?",
         difficulty="medium",
-        expected_signals=["clear endpoint design", "chunking and metadata", "retrieval evaluation", "error handling", "security boundaries"],
+        expected_signals=[
+            "clear endpoint design",
+            "chunking and metadata",
+            "retrieval evaluation",
+            "error handling",
+            "security boundaries",
+        ],
         follow_up_probe="How would you prevent one user's uploaded documents from leaking into another user's chat results?",
     )
 
@@ -167,8 +201,14 @@ def _mock_interview_feedback(question: str, answer: str) -> InterviewFeedbackRes
     return InterviewFeedbackResponse(
         score=72,
         verdict="Good structure, but needs more concrete engineering detail.",
-        strengths=["You addressed the main idea", "You showed awareness of retrieval and API design"],
-        inaccuracies=["The answer should mention metadata filtering by session/user", "It should explain how sources are returned to the user"],
+        strengths=[
+            "You addressed the main idea",
+            "You showed awareness of retrieval and API design",
+        ],
+        inaccuracies=[
+            "The answer should mention metadata filtering by session/user",
+            "It should explain how sources are returned to the user",
+        ],
         improved_answer=(
             "I would expose upload and chat endpoints, extract text from PDFs, split it into overlapping chunks, "
             "store embeddings with session_id metadata, retrieve the top chunks for each query, and ask the LLM to answer only from those chunks. "
@@ -186,7 +226,7 @@ def _mock_resume_rewrite(bullets: list[str], target_role: str) -> ResumeRewriteR
     return ResumeRewriteResponse(
         rewritten_bullets=rewritten,
         keywords_added=["FastAPI", "RAG", "API design", "testing", "deployment"],
-        explanation="Mock rewrite: bullets were made more outcome-focused and aligned with AI engineering keywords.",
+        explanation="Deterministic rewrite: bullets were made more outcome-focused and aligned with AI engineering keywords.",
     )
 
 
@@ -195,7 +235,7 @@ def _ask_structured(
 ) -> T:
     """Ask the LLM for a strict JSON object and validate it with Pydantic."""
     if settings.should_use_mock_ai or client is None:
-        return fallback
+        return fallback.model_copy(update={"generation_mode": "mock", "degraded": False})
 
     schema = _model_schema(response_model)
     messages = [
@@ -208,6 +248,7 @@ def _ask_structured(
             model=settings.llm_model,
             messages=messages,
             temperature=0.2,
+            max_completion_tokens=settings.llm_max_output_tokens,
             response_format={
                 "type": "json_schema",
                 "json_schema": {
@@ -218,25 +259,42 @@ def _ask_structured(
             },
         )
         content = response.choices[0].message.content or "{}"
-        return response_model.model_validate(_extract_json(content))
+        parsed = response_model.model_validate(_extract_json(content))
+        return parsed.model_copy(update={"generation_mode": "openai", "degraded": False})
     except Exception as primary_error:
-        logger.warning("Structured AI response failed; retrying with JSON mode: %s", primary_error)
+        logger.warning(
+            "Structured AI response failed; retrying with JSON mode",
+            extra={"event": "ai_retry", "error_type": type(primary_error).__name__},
+        )
         # Second attempt: older SDK/model fallback with plain JSON object.
         try:
             response = client.chat.completions.create(
                 model=settings.llm_model,
-                messages=messages + [{"role": "user", "content": f"Return valid JSON matching this schema: {json.dumps(schema)}"}],
+                messages=messages
+                + [
+                    {
+                        "role": "user",
+                        "content": f"Return valid JSON matching this schema: {json.dumps(schema)}",
+                    }
+                ],
                 temperature=0.2,
+                max_completion_tokens=settings.llm_max_output_tokens,
                 response_format={"type": "json_object"},
             )
             content = response.choices[0].message.content or "{}"
-            return response_model.model_validate(_extract_json(content))
+            parsed = response_model.model_validate(_extract_json(content))
+            return parsed.model_copy(update={"generation_mode": "openai", "degraded": False})
         except (Exception, ValidationError, json.JSONDecodeError) as fallback_error:
-            logger.warning("AI JSON fallback failed; returning deterministic fallback: %s", fallback_error)
-            return fallback
+            logger.warning(
+                "AI JSON fallback failed; returning deterministic fallback",
+                extra={"event": "ai_fallback", "error_type": type(fallback_error).__name__},
+            )
+            return fallback.model_copy(update={"generation_mode": "fallback", "degraded": True})
 
 
-def analyze_skills_gap(resume: str, job_desc: str, target_seniority: str = "junior") -> GapAnalysisResponse:
+def analyze_skills_gap(
+    resume: str, job_desc: str, target_seniority: str = "junior"
+) -> GapAnalysisResponse:
     fallback = _mock_gap_analysis(resume, job_desc)
     return _ask_structured(
         system_prompt=(
@@ -252,7 +310,12 @@ def analyze_skills_gap(resume: str, job_desc: str, target_seniority: str = "juni
     )
 
 
-def generate_study_plan(missing_skills: list[str], days: int = 90, hours_per_week: int = 8, target_role: str = "AI Engineer") -> RoadmapResponse:
+def generate_study_plan(
+    missing_skills: list[str],
+    days: int = 90,
+    hours_per_week: int = 8,
+    target_role: str = "AI Engineer",
+) -> RoadmapResponse:
     fallback = _mock_roadmap(missing_skills, days, hours_per_week, target_role)
     return _ask_structured(
         system_prompt=(
@@ -268,7 +331,9 @@ def generate_study_plan(missing_skills: list[str], days: int = 90, hours_per_wee
     )
 
 
-def generate_interview_question(target_role: str, seniority: str, focus_skills: list[str]) -> InterviewQuestionResponse:
+def generate_interview_question(
+    target_role: str, seniority: str, focus_skills: list[str]
+) -> InterviewQuestionResponse:
     fallback = _mock_interview_question(target_role, seniority, focus_skills)
     return _ask_structured(
         system_prompt="You are a senior technical interviewer. Generate one realistic interview question with assessment signals. Return only JSON.",
@@ -278,7 +343,9 @@ def generate_interview_question(target_role: str, seniority: str, focus_skills: 
     )
 
 
-def evaluate_interview_answer(question: str, answer: str, target_role: str = "AI Engineer") -> InterviewFeedbackResponse:
+def evaluate_interview_answer(
+    question: str, answer: str, target_role: str = "AI Engineer"
+) -> InterviewFeedbackResponse:
     fallback = _mock_interview_feedback(question, answer)
     return _ask_structured(
         system_prompt=(
@@ -291,7 +358,9 @@ def evaluate_interview_answer(question: str, answer: str, target_role: str = "AI
     )
 
 
-def rewrite_resume_bullets(bullets: list[str], target_role: str, job_description_text: str | None = None) -> ResumeRewriteResponse:
+def rewrite_resume_bullets(
+    bullets: list[str], target_role: str, job_description_text: str | None = None
+) -> ResumeRewriteResponse:
     fallback = _mock_resume_rewrite(bullets, target_role)
     return _ask_structured(
         system_prompt=(
@@ -317,7 +386,9 @@ def _trusted_source(block: dict[str, Any]) -> SourceChunk:
     )
 
 
-def _ground_chat_response(response: ChatResponse, context_blocks: list[dict[str, Any]]) -> ChatResponse:
+def _ground_chat_response(
+    response: ChatResponse, context_blocks: list[dict[str, Any]]
+) -> ChatResponse:
     """Replace model-provided citation metadata with trusted retrieval metadata."""
     allowed = {
         str(block.get("chunk_id")): block
@@ -333,16 +404,14 @@ def _ground_chat_response(response: ChatResponse, context_blocks: list[dict[str,
             grounded.append(_trusted_source(block))
             seen.add(source.chunk_id)
 
-    # A grounded answer should remain auditable even if the model omitted citations.
-    if not grounded:
-        for block in context_blocks[:3]:
-            chunk_id = str(block.get("chunk_id") or "")
-            if chunk_id and block.get("text") and chunk_id not in seen:
-                grounded.append(_trusted_source(block))
-                seen.add(chunk_id)
-
     confidence = response.confidence if grounded else "low"
-    return response.model_copy(update={"sources": grounded, "confidence": confidence})
+    return response.model_copy(
+        update={
+            "sources": grounded,
+            "confidence": confidence,
+            "grounding_status": "grounded" if grounded else "unsupported",
+        }
+    )
 
 
 def answer_with_context(query: str, context_blocks: list[dict[str, Any]]) -> ChatResponse:
@@ -360,7 +429,7 @@ def answer_with_context(query: str, context_blocks: list[dict[str, Any]]) -> Cha
     context = json.dumps(context_records, ensure_ascii=False)
 
     fallback = ChatResponse(
-        answer="I found related document chunks, but the AI service is running in mock mode. The strongest available context is included in the sources.",
+        answer="I found related document chunks, but a generated answer is unavailable. The strongest available context is included in the sources.",
         sources=[
             {
                 "source": block.get("source", "document"),
@@ -372,7 +441,11 @@ def answer_with_context(query: str, context_blocks: list[dict[str, Any]]) -> Cha
             for block in context_blocks[:5]
         ],
         confidence="medium" if context_blocks else "low",
-        follow_up_questions=["Do you want a shorter summary?", "Should I extract action items from this document?"],
+        grounding_status="grounded" if context_blocks else "no_context",
+        follow_up_questions=[
+            "Do you want a shorter summary?",
+            "Should I extract action items from this document?",
+        ],
     )
 
     response = _ask_structured(

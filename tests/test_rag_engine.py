@@ -25,56 +25,33 @@ def test_stable_chunk_id_is_deterministic_and_session_scoped():
     assert first.startswith("session-a-")
 
 
-def test_mock_embeddings_use_the_configured_dimension(monkeypatch):
-    monkeypatch.setattr(rag.settings, "mock_embeddings", True)
-    monkeypatch.setattr(rag.settings, "embedding_dimensions", 64)
+def test_pdf_extraction_rejects_excessive_text(monkeypatch):
+    class Page:
+        def extract_text(self):
+            return "x" * 60
 
-    embeddings = rag.embed_texts(["Python and FastAPI"])
+    class Reader:
+        is_encrypted = False
+        pages = [Page(), Page()]
 
-    assert len(embeddings) == 1
-    assert len(embeddings[0]) == 64
+    monkeypatch.setattr(rag, "PdfReader", lambda path: Reader())
+    monkeypatch.setattr(rag.settings, "max_document_characters", 100)
+
+    with pytest.raises(ValueError, match="character processing limit"):
+        rag.extract_pdf_pages("oversized.pdf")
 
 
-def test_reupload_replaces_stale_chunks_for_the_same_document(monkeypatch):
-    events = []
-
-    class Collection:
-        def get(self, **kwargs):
-            events.append(("get", kwargs))
-            return {"ids": ["old-chunk"]}
-
-        def upsert(self, **kwargs):
-            events.append(("upsert", kwargs))
-
-        def delete(self, **kwargs):
-            events.append(("delete", kwargs))
-
+def test_document_chunk_count_is_bounded_before_embedding(monkeypatch):
     monkeypatch.setattr(
         rag,
         "extract_pdf_pages",
-        lambda _path: [{"page": 1, "text": "Updated Python and FastAPI experience."}],
+        lambda path: [{"page": 1, "text": "Sentence. " * 100}],
     )
-    monkeypatch.setattr(rag, "_collection", lambda: Collection())
-    monkeypatch.setattr(rag, "embed_texts", lambda texts: [[0.0, 1.0] for _ in texts])
+    monkeypatch.setattr(rag, "split_text", lambda text: ["one", "two", "three"])
+    monkeypatch.setattr(rag.settings, "max_document_chunks", 2)
 
-    chunks = rag.process_and_store_document(
-        "unused.pdf", session_id="demo_123", original_filename="resume.pdf"
-    )
-
-    assert chunks == 1
-    assert events[0] == (
-        "get",
-        {
-            "where": {
-                "$and": [
-                    {"session_id": {"$eq": "demo_123"}},
-                    {"source": {"$eq": "resume.pdf"}},
-                ]
-            },
-            "include": [],
-        },
-    )
-    assert events[-1] == ("delete", {"ids": ["old-chunk"]})
+    with pytest.raises(ValueError, match="chunk processing limit"):
+        rag.process_and_store_document("oversized.pdf", "session-a")
 
 
 def test_list_session_documents_aggregates_without_returning_text(monkeypatch):

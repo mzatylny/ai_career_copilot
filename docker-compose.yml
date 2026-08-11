@@ -3,9 +3,17 @@ services:
     build: .
     init: true
     restart: unless-stopped
+    read_only: true
     ports:
       - "8000:8000"
     env_file:
       - .env
     volumes:
       - ./chroma_db:/app/chroma_db
+      - ./data:/app/data
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true

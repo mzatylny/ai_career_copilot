@@ -1,0 +1,38 @@
+{
+  "documents": [
+    {
+      "id": "python-api",
+      "text": "Built Python FastAPI services with typed request validation, integration tests and Docker deployment."
+    },
+    {
+      "id": "rag-system",
+      "text": "Designed a retrieval augmented generation pipeline with vector search, metadata filters and grounded citations."
+    },
+    {
+      "id": "observability",
+      "text": "Implemented production observability with structured logs, latency metrics, traces, dashboards and alerts."
+    },
+    {
+      "id": "leadership",
+      "text": "Led architecture reviews, mentored engineers and documented technical trade-offs with decision records."
+    }
+  ],
+  "cases": [
+    {
+      "query": "What evidence shows backend API engineering?",
+      "expected_ids": ["python-api"]
+    },
+    {
+      "query": "Has this person built vector retrieval with trustworthy sources?",
+      "expected_ids": ["rag-system"]
+    },
+    {
+      "query": "How is the service monitored in production?",
+      "expected_ids": ["observability"]
+    },
+    {
+      "query": "What demonstrates senior technical leadership?",
+      "expected_ids": ["leadership"]
+    }
+  ]
+}

@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="AI Career Copilot portfolio demo" />
+    <title>AI Career Copilot</title>
+    <link rel="stylesheet" href="/styles.css" />
+    <script src="/app.js" defer></script>
+  </head>
+  <body>
+    <header class="hero">
+      <nav>
+        <span class="brand">Career Copilot</span>
+        <a href="/docs">API docs</a>
+      </nav>
+      <div class="hero-copy">
+        <p class="eyebrow">Grounded AI career intelligence</p>
+        <h1>Turn career evidence into a focused engineering plan.</h1>
+        <p>
+          Compare a CV with a role, build a practical roadmap, and ask questions over private,
+          session-isolated documents with server-verified citations.
+        </p>
+        <div class="proof">
+          <span>FastAPI</span><span>RAG</span><span>Typed outputs</span><span>Observable</span>
+        </div>
+      </div>
+    </header>
+
+    <main>
+      <section class="control-panel" aria-labelledby="access-heading">
+        <div>
+          <p class="eyebrow">Demo access</p>
+          <h2 id="access-heading">Start a private session</h2>
+          <p>Leave the API key empty when running the default local demo.</p>
+        </div>
+        <label>
+          API key
+          <input id="api-key" type="password" autocomplete="off" placeholder="Optional locally" />
+        </label>
+        <button id="create-session" type="button">Create session</button>
+        <output id="session-output" aria-live="polite">No session yet</output>
+      </section>
+
+      <section class="grid" aria-label="Career Copilot workflows">
+        <article class="card card-wide">
+          <p class="step">01 · Skills gap</p>
+          <h2>Compare evidence with opportunity</h2>
+          <form id="gap-form">
+            <label>
+              CV or résumé text
+              <textarea id="resume-text" minlength="40" required placeholder="Paste your career evidence..."></textarea>
+            </label>
+            <label>
+              Target job description
+              <textarea id="job-text" minlength="40" required placeholder="Paste the role requirements..."></textarea>
+            </label>
+            <button type="submit">Analyze fit</button>
+          </form>
+          <pre id="gap-result" class="result" aria-live="polite">Results appear here.</pre>
+        </article>
+
+        <article class="card">
+          <p class="step">02 · Grounded documents</p>
+          <h2>Index a PDF in the background</h2>
+          <form id="upload-form">
+            <label>
+              PDF document
+              <input id="pdf-file" type="file" accept="application/pdf,.pdf" required />
+            </label>
+            <button type="submit">Upload and index</button>
+          </form>
+          <output id="upload-result" class="result" aria-live="polite">Create a session first.</output>
+        </article>
+
+        <article class="card">
+          <p class="step">03 · Ask with evidence</p>
+          <h2>Question your documents</h2>
+          <form id="chat-form">
+            <label>
+              Question
+              <textarea id="chat-query" minlength="3" required placeholder="Which projects best support this role?"></textarea>
+            </label>
+            <button type="submit">Ask Copilot</button>
+          </form>
+          <pre id="chat-result" class="result" aria-live="polite">Grounded answers appear here.</pre>
+        </article>
+      </section>
+
+      <section class="engineering">
+        <div>
+          <p class="eyebrow">Engineering proof</p>
+          <h2>Built for scrutiny, not just screenshots.</h2>
+        </div>
+        <ul>
+          <li>Tenant-owned sessions and bounded request rates</li>
+          <li>Async PDF ingestion with durable job metadata</li>
+          <li>Trusted citation reconstruction and prompt-injection boundaries</li>
+          <li>Metrics, structured audit logs, CI security checks, and RAG evaluation</li>
+        </ul>
+      </section>
+    </main>
+
+    <footer>
+      <span>AI Career Copilot · v3</span>
+      <a href="https://github.com/mzatylny/ai_career_copilot">View source</a>
+    </footer>
+  </body>
+</html>

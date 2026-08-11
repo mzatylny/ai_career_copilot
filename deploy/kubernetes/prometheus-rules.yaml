@@ -1,0 +1,36 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: ai-career-copilot
+spec:
+  groups:
+    - name: ai-career-copilot.rules
+      rules:
+        - alert: CareerCopilotHighErrorRate
+          expr: |
+            sum(rate(ai_copilot_http_requests_total{status=~"5.."}[5m]))
+            /
+            clamp_min(sum(rate(ai_copilot_http_requests_total[5m])), 0.001) > 0.05
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: AI Career Copilot error rate is above 5%
+        - alert: CareerCopilotHighP95Latency
+          expr: |
+            histogram_quantile(
+              0.95,
+              sum by (le) (rate(ai_copilot_http_request_duration_seconds_bucket[5m]))
+            ) > 3
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: AI Career Copilot p95 latency is above three seconds
+        - alert: CareerCopilotIngestionFailures
+          expr: increase(ai_copilot_ingestion_jobs_total{status="failed"}[15m]) > 3
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: Multiple PDF ingestion jobs have failed
