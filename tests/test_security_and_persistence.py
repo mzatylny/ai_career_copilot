@@ -1,3 +1,4 @@
+import sqlite3
 import threading
 from pathlib import Path
 
@@ -60,6 +61,20 @@ def test_session_store_enforces_owner_and_job_visibility(tmp_path):
     assert completed.status == "completed"
     assert completed.chunks_indexed == 7
     assert store.ping() is True
+
+
+def test_session_store_closes_short_lived_connections(tmp_path):
+    store = SessionStore(tmp_path / "sessions.db")
+
+    with store._connect() as connection:
+        assert connection.execute("SELECT 1").fetchone()[0] == 1
+
+    try:
+        connection.execute("SELECT 1")
+    except sqlite3.ProgrammingError as exc:
+        assert "closed" in str(exc)
+    else:
+        raise AssertionError("SessionStore left its SQLite connection open")
 
 
 def test_session_deletion_cancels_queued_job_metadata(tmp_path):
