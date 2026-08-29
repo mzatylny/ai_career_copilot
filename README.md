@@ -17,7 +17,7 @@ AI Career Copilot is a production-minded FastAPI service and interactive web dem
 - **Safe local demo** — deterministic mock LLM and embedding modes run without an API key.
 - **Bounded processing** — uploads, PDF page count, request text, retrieval size, and embedding batches have explicit limits.
 - **Truthful degradation** — every generated response identifies OpenAI, mock, or fallback execution; provider failures cannot masquerade as live output.
-- **Portfolio-ready engineering** — typed API models, tests, CI, non-root Docker runtime, health checks, request IDs, and security headers.
+- **Portfolio-ready engineering** — typed API models, 90%-gated tests, CodeQL, CI, non-root Docker runtime, health checks, request IDs, and security headers.
 
 ## Capabilities
 
@@ -166,7 +166,7 @@ pip-audit --local --skip-editable
 python -m scripts.run_rag_eval --minimum-recall 0.75
 ```
 
-The test suite covers authentication, tenant ownership, configuration bounds, API validation, safe uploads, error redaction, async jobs, session isolation, citation grounding, document inventory, chunking, metrics, and retrieval-quality calculations. GitHub Actions runs lint, security checks, dependency auditing, tests with coverage, and deterministic RAG evaluation on Python 3.11 and 3.12.
+The test suite covers authentication, tenant ownership, configuration bounds, API validation, safe uploads, error redaction, async jobs, session isolation, citation grounding, document inventory, chunking, embedding caching, metrics, optional tracing degradation, and retrieval-quality calculations. GitHub Actions enforces 90% coverage and runs lint, CodeQL, security checks, dependency auditing, deterministic RAG evaluation, and tests on Python 3.11, 3.12, and 3.13.
 
 ## Docker
 
