@@ -163,16 +163,20 @@ async def security_observability_middleware(request: Request, call_next):
     else:
         response = await call_next(request)
 
-    route = getattr(request.scope.get("route"), "path", request.url.path)
+    # Routing may not have run for 401/429 responses, and 404 paths are untrusted.
+    route = getattr(request.scope.get("route"), "path", "unmatched")
+    method = request.method if request.method in {
+        "GET", "HEAD", "POST", "PUT", "DELETE", "CONNECT", "OPTIONS", "TRACE", "PATCH"
+    } else "OTHER"
     duration = time.perf_counter() - started
-    REQUEST_COUNT.labels(request.method, route, str(response.status_code)).inc()
-    REQUEST_DURATION.labels(request.method, route).observe(duration)
+    REQUEST_COUNT.labels(method, route, str(response.status_code)).inc()
+    REQUEST_DURATION.labels(method, route).observe(duration)
     logger.info(
         "request completed",
         extra={
             "event": "http_request",
             "request_id": request_id,
-            "method": request.method,
+            "method": method,
             "path": route,
             "status_code": response.status_code,
             "duration_ms": round(duration * 1_000, 2),

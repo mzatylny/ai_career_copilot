@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import json
 import re
 import threading
 from collections import OrderedDict, defaultdict
@@ -147,8 +148,13 @@ def split_text(text: str, *, chunk_size: int = 1100, overlap: int = 160) -> list
     return chunks
 
 
-def _stable_chunk_id(session_id: str, source: str, page: int, text: str) -> str:
-    digest = hashlib.sha256(f"{session_id}|{source}|{page}|{text[:500]}".encode()).hexdigest()[:20]
+def _stable_chunk_id(
+    session_id: str, source: str, page: int, text: str, *, chunk_index: int = 0
+) -> str:
+    identity = json.dumps(
+        [session_id, source, page, chunk_index, text], ensure_ascii=False, separators=(",", ":")
+    )
+    digest = hashlib.sha256(identity.encode("utf-8")).hexdigest()[:20]
     return f"{session_id}-{digest}"
 
 
@@ -171,7 +177,9 @@ def process_and_store_document(
                 raise ValueError(
                     f"PDF exceeds the {settings.max_document_chunks:,}-chunk processing limit"
                 )
-            chunk_id = _stable_chunk_id(session_id, source, page["page"], chunk + str(idx))
+            chunk_id = _stable_chunk_id(
+                session_id, source, page["page"], chunk, chunk_index=idx
+            )
             ids.append(chunk_id)
             documents.append(chunk)
             metadatas.append(
