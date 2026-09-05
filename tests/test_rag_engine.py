@@ -25,6 +25,35 @@ def test_stable_chunk_id_is_deterministic_and_session_scoped():
     assert first.startswith("session-a-")
 
 
+def test_chunk_identity_includes_full_text_and_position():
+    prefix = "a" * 500
+    first = rag._stable_chunk_id("session-a", "doc.pdf", 1, prefix + "first", chunk_index=1)
+    changed_tail = rag._stable_chunk_id(
+        "session-a", "doc.pdf", 1, prefix + "second", chunk_index=1
+    )
+    repeated_chunk = rag._stable_chunk_id(
+        "session-a", "doc.pdf", 1, prefix + "first", chunk_index=2
+    )
+    assert len({first, changed_tail, repeated_chunk}) == 3
+
+
+def test_repeated_prefix_document_preserves_all_chunks_on_reupload(tmp_path, monkeypatch):
+    import chromadb
+
+    collection = chromadb.PersistentClient(path=str(tmp_path / "chroma")).create_collection(
+        "repeated-prefixes", embedding_function=None
+    )
+    monkeypatch.setattr(rag, "_collection", lambda: collection)
+    monkeypatch.setattr(
+        rag, "extract_pdf_pages", lambda _: [{"page": 1, "text": "a" * 2500}]
+    )
+    monkeypatch.setattr(rag, "embed_texts", lambda texts: [[1.0, 0.0] for _ in texts])
+    assert rag.process_and_store_document("doc.pdf", "session-a") == 3
+    assert collection.count() == 3
+    assert rag.process_and_store_document("doc.pdf", "session-a") == 3
+    assert collection.count() == 3
+
+
 def test_pdf_extraction_rejects_excessive_text(monkeypatch):
     class Page:
         def extract_text(self):
