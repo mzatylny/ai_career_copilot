@@ -72,6 +72,7 @@ from app.session_locks import SessionMutationCoordinator
 from app.session_store import JobRecord, SessionStore
 from app.tracing import configure_tracing
 from app.utils import safe_filename
+from app.vector_store import close_collections
 
 settings = get_settings()
 configure_logging(settings.log_level)
@@ -107,7 +108,10 @@ async def lifespan(_: FastAPI):
             raise RuntimeError("Production requires AI_COPILOT_TENANT_KEYS or AI_COPILOT_API_KEY")
         if not registry.meets_minimum_key_length():
             raise RuntimeError("Production API keys must contain at least 32 characters")
-    yield
+    try:
+        yield
+    finally:
+        await run_in_threadpool(close_collections)
 
 
 app = FastAPI(
@@ -163,16 +167,20 @@ async def security_observability_middleware(request: Request, call_next):
     else:
         response = await call_next(request)
 
-    route = getattr(request.scope.get("route"), "path", request.url.path)
+    # Routing may not have run for 401/429 responses, and 404 paths are untrusted.
+    route = getattr(request.scope.get("route"), "path", "unmatched")
+    method = request.method if request.method in {
+        "GET", "HEAD", "POST", "PUT", "DELETE", "CONNECT", "OPTIONS", "TRACE", "PATCH"
+    } else "OTHER"
     duration = time.perf_counter() - started
-    REQUEST_COUNT.labels(request.method, route, str(response.status_code)).inc()
-    REQUEST_DURATION.labels(request.method, route).observe(duration)
+    REQUEST_COUNT.labels(method, route, str(response.status_code)).inc()
+    REQUEST_DURATION.labels(method, route).observe(duration)
     logger.info(
         "request completed",
         extra={
             "event": "http_request",
             "request_id": request_id,
-            "method": request.method,
+            "method": method,
             "path": route,
             "status_code": response.status_code,
             "duration_ms": round(duration * 1_000, 2),
@@ -246,7 +254,7 @@ def health() -> HealthResponse:
         version=__version__,
         environment=settings.environment,
         ai_mode="mock" if settings.should_use_mock_ai else "openai",
-        vector_store="chroma",
+        vector_store="qdrant",
     )
 
 
@@ -270,7 +278,7 @@ def readiness() -> ReadinessResponse:
     checks = {
         "metadata_store": metadata_ready,
         "object_store": object_store.is_ready(),
-        "vector_store_path": _storage_path_ready(settings.chroma_path),
+        "vector_store_path": _storage_path_ready(settings.qdrant_path),
     }
     if not all(checks.values()):
         raise HTTPException(status_code=503, detail="Service dependencies are not ready")

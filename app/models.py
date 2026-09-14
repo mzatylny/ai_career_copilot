@@ -201,7 +201,7 @@ class HealthResponse(APIModel):
     version: str
     environment: str
     ai_mode: Literal["mock", "openai"]
-    vector_store: Literal["chroma"]
+    vector_store: Literal["qdrant"]
 
 
 class ReadinessResponse(APIModel):

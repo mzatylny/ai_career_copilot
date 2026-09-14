@@ -12,3 +12,5 @@ data/
 test_data/
 .venv/
 .DS_Store
+
+qdrant_db/

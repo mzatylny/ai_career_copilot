@@ -1,6 +1,6 @@
 from functools import lru_cache
 
-from pydantic import Field, SecretStr, field_validator
+from pydantic import Field, SecretStr, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -22,8 +22,10 @@ class Settings(BaseSettings):
     embedding_model: str = Field(default="text-embedding-3-small", alias="EMBEDDING_MODEL")
     embedding_dimensions: int = Field(default=1536, ge=32, le=4096, alias="EMBEDDING_DIMENSIONS")
 
-    chroma_path: str = Field(default="./chroma_db", alias="CHROMA_PATH")
-    collection_name: str = Field(default="career_documents", alias="CHROMA_COLLECTION")
+    qdrant_path: str = Field(default="./qdrant_db", alias="QDRANT_PATH")
+    collection_name: str = Field(default="career_documents", alias="QDRANT_COLLECTION")
+    legacy_chroma_path: str | None = Field(default=None, alias="CHROMA_PATH", exclude=True)
+    legacy_chroma_collection: str | None = Field(default=None, alias="CHROMA_COLLECTION", exclude=True)
     session_database_path: str = Field(default="./data/sessions.db", alias="SESSION_DATABASE_PATH")
     object_storage_path: str = Field(default="./data/objects", alias="OBJECT_STORAGE_PATH")
 
@@ -68,6 +70,15 @@ class Settings(BaseSettings):
     @classmethod
     def normalize_environment(cls, value: str) -> str:
         return value.strip().lower()
+
+    @model_validator(mode="after")
+    def reject_legacy_vector_settings(self):
+        if self.legacy_chroma_path is not None or self.legacy_chroma_collection is not None:
+            raise ValueError(
+                "Migrate Chroma data first, then replace CHROMA_PATH/CHROMA_COLLECTION "
+                "with QDRANT_PATH/QDRANT_COLLECTION; see docs/VECTOR_MIGRATION.md"
+            )
+        return self
 
     @property
     def cors_origins(self) -> list[str]:

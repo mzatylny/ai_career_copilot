@@ -2,7 +2,7 @@
 
 ## ADR-001: Server-owned sessions
 
-Clients receive cryptographically random session identifiers from `POST /api/sessions`. Ownership is stored separately from Chroma so vector metadata is never treated as authorization. Local demo mode can still create a legacy client-supplied session for backwards compatibility; authenticated deployments cannot.
+Clients receive cryptographically random session identifiers from `POST /api/sessions`. Ownership is stored separately from Qdrant so vector metadata is never treated as authorization. Local demo mode can still create a legacy client-supplied session for backwards compatibility; authenticated deployments cannot.
 
 ## ADR-002: Small local adapters before managed infrastructure
 

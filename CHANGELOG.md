@@ -1,5 +1,12 @@
 # Changelog
 
+## 3.1.0
+
+- Replaced the ChromaDB runtime dependency with persistent local Qdrant to remove the dependency-audit blocker without suppressing security findings.
+- Preserved session-filtered retrieval, external chunk IDs, document replacement and deletion; serialized local vector operations across worker threads.
+- Added an offline, checksum-validated migration into a new directory and explicit rejection of legacy Chroma configuration. See `docs/VECTOR_MIGRATION.md`.
+- Updated health metadata, configuration and container storage paths for Qdrant. Existing installations must migrate before upgrading.
+
 ## 3.0.0
 
 - Added tenant API-key identities, server-generated sessions, and enforced session ownership.

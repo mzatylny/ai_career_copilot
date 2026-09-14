@@ -2,7 +2,7 @@
 
 ## Scope and assets
 
-The service handles CV text, job descriptions, uploaded PDFs, vector embeddings, API credentials, and AI-generated career guidance. The primary trust boundaries are the public HTTP API, the LLM provider, PDF parsing, SQLite ownership metadata, local object storage, and ChromaDB.
+The service handles CV text, job descriptions, uploaded PDFs, vector embeddings, API credentials, and AI-generated career guidance. The primary trust boundaries are the public HTTP API, the LLM provider, PDF parsing, SQLite ownership metadata, local object storage, and Qdrant.
 
 ## Actors
 
@@ -16,7 +16,7 @@ The service handles CV text, job descriptions, uploaded PDFs, vector embeddings,
 
 | Threat | Impact | Current controls | Residual risk / production action |
 | --- | --- | --- | --- |
-| Cross-tenant document access | CV disclosure or deletion | API-key tenant identity, server-generated sessions, SQLite ownership checks, Chroma session filter | Put authentication at an identity-aware gateway; rotate keys; add authorization audit alerts |
+| Cross-tenant document access | CV disclosure or deletion | API-key tenant identity, server-generated sessions, SQLite ownership checks, Qdrant session filter | Put authentication at an identity-aware gateway; rotate keys; add authorization audit alerts |
 | Direct or indirect prompt injection | Misleading answers or forged sources | Document text marked untrusted, structured outputs, adversarial citation tests, strict retrieval-ID allowlist, no agent tools | Add a larger red-team corpus and provider moderation appropriate to the product |
 | Unbounded AI, upload use, or credential guessing | Cost increase, denial of service, or account access | Input/page/upload/text/chunk limits, per-tenant and pre-authentication IP rate limits, output-token cap, timeouts, bounded embedding cache | Use gateway/Redis-backed distributed limits, budget alerts, queue depth limits and per-tenant quotas |
 | Ingestion/deletion race | Deleted personal data is recreated by a queued job | Per-session mutation lock, durable ownership/job metadata, cancelled-job check before processing | Use transactional shared state and a durable queue in multi-instance deployments |
@@ -31,4 +31,4 @@ The embedding cache is bounded and keyed by SHA-256; it does not retain raw inpu
 
 ## Scaling boundary
 
-The included SQLite, local object store, Chroma persistence, background tasks, and rate limiter make one-instance behavior testable. Horizontal production scale requires managed relational metadata, S3-compatible objects, a managed vector store, Redis-backed limiting, and a durable worker queue. The single-replica Kubernetes manifest intentionally does not pretend otherwise.
+The included SQLite, local object store, Qdrant persistence, background tasks, and rate limiter make one-instance behavior testable. Horizontal production scale requires managed relational metadata, S3-compatible objects, a managed vector store, Redis-backed limiting, and a durable worker queue. The single-replica Kubernetes manifest intentionally does not pretend otherwise.

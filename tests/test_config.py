@@ -60,3 +60,17 @@ def test_duplicate_tenant_or_key_configuration_is_rejected(configured):
 
     with pytest.raises(ValueError):
         _ = settings.tenant_api_keys
+
+
+def test_legacy_chroma_configuration_requires_explicit_migration():
+    import pytest
+
+    for key in ["CHROMA_PATH", "CHROMA_COLLECTION"]:
+        with pytest.raises(ValueError, match="Migrate Chroma data first"):
+            Settings(_env_file=None, **{key: "legacy"})
+
+
+def test_qdrant_configuration_accepts_a_new_storage_path():
+    settings = Settings(_env_file=None, QDRANT_PATH="./new-vectors", QDRANT_COLLECTION="resumes")
+    assert settings.qdrant_path == "./new-vectors"
+    assert settings.collection_name == "resumes"
