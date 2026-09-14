@@ -336,8 +336,11 @@ def _process_document_serialized(
     file_path: str | Path,
     session_id: str,
     filename: str,
+    principal: Principal,
 ) -> int:
     with session_mutations.hold(session_id):
+        # Reading an upload can outlast deletion. Never recreate a session here.
+        _require_session_owner(session_id, principal)
         return process_and_store_document(file_path, session_id, filename)
 
 
@@ -355,8 +358,10 @@ async def upload_document(
             await _save_bounded_upload(file, temp_path, settings.max_upload_bytes)
             try:
                 chunks = await run_in_threadpool(
-                    _process_document_serialized, temp_path, session_id, safe_name
+                    _process_document_serialized, temp_path, session_id, safe_name, principal
                 )
+            except HTTPException:
+                raise
             except ValueError as exc:
                 raise HTTPException(status_code=422, detail=str(exc)) from exc
             except Exception as exc:
