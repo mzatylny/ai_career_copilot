@@ -4,7 +4,7 @@
 
 FastAPI and Pydantic reject unknown fields, unsafe session identifiers, oversized text inputs, invalid configuration limits, enum values, and malformed uploads. Middleware maps hashed API keys to tenant identities, enforces a bounded request rate, and leaves health monitoring public. Production refuses to start without configured credentials. API responses include a request ID, `no-store` caching, CSP, MIME-sniffing protection, frame denial, permissions policy, and a restrictive referrer policy.
 
-Synchronous OpenAI and ChromaDB work runs outside the async event loop. The synchronous upload remains available, while the async endpoint stores a bounded object, returns a persistent job resource, and processes it after the response. The worker object is deleted after every terminal outcome. A per-session mutation coordinator serializes ingestion and deletion so a queued task cannot recreate document data after its session is deleted.
+Synchronous OpenAI and Qdrant work runs outside the async event loop. The synchronous upload remains available, while the async endpoint stores a bounded object, returns a persistent job resource, and processes it after the response. The worker object is deleted after every terminal outcome. A per-session mutation coordinator serializes ingestion and deletion so a queued task cannot recreate document data after its session is deleted.
 
 ## Career intelligence
 

@@ -38,11 +38,9 @@ def test_chunk_identity_includes_full_text_and_position():
 
 
 def test_repeated_prefix_document_preserves_all_chunks_on_reupload(tmp_path, monkeypatch):
-    import chromadb
+    from app.vector_store import VectorCollection
 
-    collection = chromadb.PersistentClient(path=str(tmp_path / "chroma")).create_collection(
-        "repeated-prefixes", embedding_function=None
-    )
+    collection = VectorCollection(tmp_path / "qdrant", "repeated-prefixes", 2)
     monkeypatch.setattr(rag, "_collection", lambda: collection)
     monkeypatch.setattr(
         rag, "extract_pdf_pages", lambda _: [{"page": 1, "text": "a" * 2500}]
@@ -52,6 +50,7 @@ def test_repeated_prefix_document_preserves_all_chunks_on_reupload(tmp_path, mon
     assert collection.count() == 3
     assert rag.process_and_store_document("doc.pdf", "session-a") == 3
     assert collection.count() == 3
+    collection.close()
 
 
 def test_pdf_extraction_rejects_excessive_text(monkeypatch):

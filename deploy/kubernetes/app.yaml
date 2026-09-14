@@ -99,7 +99,7 @@ metadata:
 data:
   ENVIRONMENT: production
   EXPOSE_DOCS: "false"
-  CHROMA_PATH: /app/data/chroma
+  QDRANT_PATH: /app/data/qdrant
   SESSION_DATABASE_PATH: /app/data/sessions.db
   OBJECT_STORAGE_PATH: /app/data/objects
   REQUESTS_PER_MINUTE: "60"

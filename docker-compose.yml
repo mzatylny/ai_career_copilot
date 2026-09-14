@@ -9,7 +9,7 @@ services:
     env_file:
       - .env
     volumes:
-      - ./chroma_db:/app/chroma_db
+      - ./qdrant_db:/app/qdrant_db
       - ./data:/app/data
     tmpfs:
       - /tmp

@@ -13,7 +13,7 @@ AI Career Copilot is a production-minded FastAPI service and interactive web dem
 
 ## Features
 - **Grounded document answers** — source metadata is reconstructed from trusted retrieval results, so the model cannot invent citation IDs or filenames.
-- **Privacy boundaries** — authenticated tenants own server-generated sessions, and every Chroma query and deletion remains session-filtered.
+- **Privacy boundaries** — authenticated tenants own server-generated sessions, and every Qdrant query and deletion remains session-filtered.
 - **Safe local demo** — deterministic mock LLM and embedding modes run without an API key.
 - **Bounded processing** — uploads, PDF page count, request text, retrieval size, and embedding batches have explicit limits.
 - **Truthful degradation** — every generated response identifies OpenAI, mock, or fallback execution; provider failures cannot masquerade as live output.
@@ -23,7 +23,7 @@ AI Career Copilot is a production-minded FastAPI service and interactive web dem
 
 - CV-to-job skills-gap analysis with evidence, risk flags, and quick wins
 - 14–180 day learning roadmaps with milestones and portfolio projects
-- PDF ingestion, chunking, embeddings, and session-scoped ChromaDB retrieval
+- PDF ingestion, chunking, embeddings, and session-scoped Qdrant retrieval
 - Grounded document chat with pages, snippets, chunk IDs, and relevance scores
 - Session document inventory and privacy-focused deletion
 - Background PDF ingestion with persistent job status
@@ -40,12 +40,16 @@ Browser / API client
 FastAPI validation, ownership and observability
   ├── Career workflows ──► OpenAI structured output or deterministic mock
   └── Document workflows ─► async job ─► object store ─► PDF parser
-                                                  └────► embeddings ─► ChromaDB
+                                                  └────► embeddings ─► Qdrant
 SQLite metadata ──► session ownership + ingestion job state
 Prometheus/logs ──► latency, status, job outcome and audit events
 ```
 
 More detail is available in [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md), the [`threat model`](docs/THREAT_MODEL.md), [`architecture decisions`](docs/DECISIONS.md), and [`deployment guide`](docs/DEPLOYMENT.md).
+
+## Upgrading from 3.0
+
+Existing Chroma data requires an explicit offline migration before starting 3.1. Use a fresh Python environment, retain the SQLite session-ownership database, and follow [`docs/VECTOR_MIGRATION.md`](docs/VECTOR_MIGRATION.md). New installations can start directly below.
 
 ## Quick start
 
@@ -136,7 +140,7 @@ curl -X POST http://localhost:8000/api/chat \
 | `AI_COPILOT_TENANT_KEYS` | empty | Comma-separated `tenant:key` identities |
 | `LLM_MODEL` | `gpt-4o-mini` | Structured-output model |
 | `EMBEDDING_MODEL` | `text-embedding-3-small` | Embedding model |
-| `CHROMA_PATH` | `./chroma_db` | Persistent vector-store path |
+| `QDRANT_PATH` | `./qdrant_db` | Persistent local Qdrant path (one app process) |
 | `SESSION_DATABASE_PATH` | `./data/sessions.db` | SQLite ownership and job metadata |
 | `OBJECT_STORAGE_PATH` | `./data/objects` | Staged async-upload objects |
 | `MAX_UPLOAD_MB` | `12` | Maximum PDF size |

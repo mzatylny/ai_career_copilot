@@ -9,11 +9,6 @@ from pathlib import Path
 from typing import Any
 
 try:
-    import chromadb
-except ImportError:  # type: ignore
-    chromadb = None  # type: ignore
-
-try:
     from openai import OpenAI
 except ImportError:  # Allows mock embeddings before dependencies are installed.
     OpenAI = None  # type: ignore
@@ -22,6 +17,7 @@ from pypdf import PdfReader
 from app.config import get_settings
 from app.embeddings import hash_embedding
 from app.utils import short_snippet
+from app.vector_store import get_collection
 
 settings = get_settings()
 client = (
@@ -83,13 +79,7 @@ def embed_texts(texts: list[str]) -> list[list[float]]:
 
 
 def _collection():
-    if chromadb is None:
-        raise RuntimeError("chromadb is not installed. Run: pip install -r requirements.txt")
-    db = chromadb.PersistentClient(path=settings.chroma_path)
-    return db.get_or_create_collection(
-        name=settings.collection_name, metadata={"hnsw:space": "cosine"}
-    )
-
+    return get_collection(settings.qdrant_path, settings.collection_name, settings.embedding_dimensions)
 
 def extract_pdf_pages(file_path: str | Path) -> list[dict[str, Any]]:
     reader = PdfReader(str(file_path))
@@ -161,7 +151,7 @@ def _stable_chunk_id(
 def process_and_store_document(
     file_path: str | Path, session_id: str, original_filename: str | None = None
 ) -> int:
-    """Load a PDF, split it and upsert chunks into ChromaDB."""
+    """Load a PDF, split it and upsert chunks into Qdrant."""
     source = original_filename or Path(file_path).name
     pages = extract_pdf_pages(file_path)
     if not pages:
@@ -245,7 +235,7 @@ def query_documents(query: str, session_id: str, k: int | None = None) -> list[d
             continue
         relevance = None
         if distance is not None:
-            # Chroma cosine distance is 0 for an identical vector and can approach 2.
+            # Cosine distance is 0 for an identical vector and can approach 2.
             relevance = round(max(0.0, min(1.0, 1.0 - float(distance))), 4)
         output.append(
             {

@@ -152,7 +152,7 @@ def _mock_roadmap(
                     "interview simulator",
                     "roadmap generation",
                 ],
-                "tech_stack": ["FastAPI", "OpenAI", "ChromaDB", "Pydantic", "Docker"],
+                "tech_stack": ["FastAPI", "OpenAI", "Qdrant", "Pydantic", "Docker"],
                 "stretch_feature": "Add job-posting comparison across 5 roles with a ranking dashboard.",
                 "github_readme_pitch": "An end-to-end AI engineering app that turns resumes and job descriptions into actionable learning plans.",
             },

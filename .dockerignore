@@ -11,3 +11,5 @@ data
 test_data
 htmlcov
 tests
+
+qdrant_db/

@@ -3,7 +3,7 @@ import os
 
 os.environ["AI_COPILOT_MOCK_LLM"] = "true"
 os.environ["AI_COPILOT_MOCK_EMBEDDINGS"] = "true"
-os.environ["CHROMA_PATH"] = "./test_chroma_db"
+os.environ["QDRANT_PATH"] = "./test_qdrant_db"
 os.environ["SESSION_DATABASE_PATH"] = "./test_data/sessions.db"
 os.environ["OBJECT_STORAGE_PATH"] = "./test_data/objects"
 
@@ -23,8 +23,8 @@ def test_health_reports_professional_version_and_security_headers():
 
     assert response.status_code == 200
     assert response.json()["status"] == "ok"
-    assert response.json()["version"] == "3.0.0"
-    assert response.json()["vector_store"] == "chroma"
+    assert response.json()["version"] == "3.1.0"
+    assert response.json()["vector_store"] == "qdrant"
     assert response.headers["x-request-id"] == "test-request-1"
     assert response.headers["x-content-type-options"] == "nosniff"
     assert response.headers["x-frame-options"] == "DENY"

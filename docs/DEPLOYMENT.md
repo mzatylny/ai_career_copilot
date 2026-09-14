@@ -4,6 +4,10 @@
 
 CI runs linting, tests with coverage, Bandit, dependency auditing, and deterministic RAG evaluation. A tag such as `v3.0.0` triggers the container workflow, which publishes an image to GitHub Container Registry with provenance and an SBOM.
 
+## Vector storage upgrade
+
+Use one application process per Qdrant local directory. Existing Chroma installations must follow [the offline migration procedure](VECTOR_MIGRATION.md), retain SQLite session ownership metadata, and update the volume mount before starting the new image.
+
 ## Kubernetes demo deployment
 
 1. Copy `deploy/kubernetes/secret.example.yaml` outside the repository and replace its example values.
@@ -12,7 +16,7 @@ CI runs linting, tests with coverage, Bandit, dependency auditing, and determini
 4. Scrape `/metrics` from the cluster network and apply `prometheus-rules.yaml` when the Prometheus Operator is installed.
 5. Install the `observability` extra and set `OTEL_EXPORTER_OTLP_ENDPOINT` to export distributed traces through OTLP/HTTP.
 
-The manifest intentionally uses one replica because the included persistence and limiter are local. Before horizontal scaling, replace SQLite, local objects, Chroma persistence, in-process jobs, and the limiter with managed shared services.
+The manifest intentionally uses one replica because the included persistence and limiter are local. Before horizontal scaling, replace SQLite, local objects, Qdrant persistence, in-process jobs, and the limiter with managed shared services.
 
 The liveness probe uses `/api/health`; readiness uses `/api/ready` and removes the pod from service when local persistence is unavailable. Production startup also rejects missing or shorter-than-32-character API keys.
 
